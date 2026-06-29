@@ -13,9 +13,9 @@ header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: #0
 header h1 span { color: #444; }
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: #888; }
 .toolbar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
-.toolbar input[type=range] { width: 70px; accent-color: #00ff88; }
+.toolbar input[type=range] { width: 60px; accent-color: #00ff88; }
 .toolbar input[type=checkbox] { accent-color: #00ff88; cursor: pointer; }
-.val { color: #ccc; min-width: 22px; display: inline-block; }
+.val { color: #ccc; min-width: 18px; display: inline-block; }
 .sep { color: #333; }
 .main { display: flex; gap: 10px; flex: 1; min-height: 0; }
 .sidebar { display: flex; flex-direction: column; gap: 8px; width: 220px; flex-shrink: 0; overflow-y: auto; }
@@ -66,7 +66,8 @@ button.primary:hover { background: #003322; }
       <span class="sep">·</span>
       <label>cell <input type="range" id="cell-s" min="8" max="32" value="16" step="1"> <span class="val" id="cell-v">16</span>px</label>
       <span class="sep">·</span>
-      <label>gap <input type="range" id="gap-s" min="0" max="8" value="0" step="1"> <span class="val" id="gap-v">0</span>px</label>
+      <label>gap H <input type="range" id="gapx-s" min="0" max="8" value="0" step="1"> <span class="val" id="gapx-v">0</span>px</label>
+      <label>V <input type="range" id="gapy-s" min="0" max="8" value="0" step="1"> <span class="val" id="gapy-v">0</span>px</label>
       <span class="sep">·</span>
       <label><input type="checkbox" id="grid-tog"> grid</label>
       <label><input type="checkbox" id="erase-tog"> erase</label>
@@ -150,7 +151,7 @@ const PALETTE = [
 
 const BG_COLORS = ['#0c0c0c','#0a0a1a','#0f1a0f','#1a0a0a','#111111','#1a1a2e','#f5f5f0','#fdf6e3'];
 
-let COLS = 40, ROWS = 16, CELL = 16, GAP = 0;
+let COLS = 40, ROWS = 16, CELL = 16, GAPX = 0, GAPY = 0;
 let selectedChar = '█';
 let selectedColor = '#00ff88';
 let bgColor = '#0c0c0c';
@@ -169,36 +170,49 @@ function initGrid() {
 }
 
 function resizeCanvas() {
-  const stride = CELL + GAP;
-  canvas.width  = COLS * stride - GAP;
-  canvas.height = ROWS * stride - GAP;
+  canvas.width  = COLS * CELL + Math.max(0, COLS - 1) * GAPX;
+  canvas.height = ROWS * CELL + Math.max(0, ROWS - 1) * GAPY;
 }
 
 function redraw() {
-  const stride = CELL + GAP;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const W = CELL, H = CELL;
+  const strideX = W + GAPX;
+  const strideY = H + GAPY;
+
+  // fill background
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = `${CELL}px "Courier New", Courier, monospace`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const x = c * stride;
-      const y = r * stride;
+      const x = c * strideX;
+      const y = r * strideY;
       const cell = grid[r][c];
 
       if (cell.char !== ' ') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, W, H);
+        ctx.clip();
         ctx.fillStyle = cell.color;
-        ctx.fillText(cell.char, x + CELL / 2, y + CELL / 2);
+        if (cell.char === '█') {
+          // full block — just fill the rect, no font needed, perfectly gapless
+          ctx.fillRect(x, y, W, H);
+        } else {
+          // partial block / other chars — render as text so the shape shows through
+          // scale font slightly larger so glyphs fill to cell edges
+          ctx.font = `${Math.ceil(CELL * 1.18)}px "Courier New", Courier, monospace`;
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          ctx.fillText(cell.char, x + W / 2, y + H / 2 + CELL * 0.02);
+        }
+        ctx.restore();
       }
 
       if (showGrid) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 0.5;
-        ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+        ctx.strokeRect(x + 0.5, y + 0.5, W - 1, H - 1);
       }
     }
   }
@@ -206,13 +220,14 @@ function redraw() {
 
 function cellFromEvent(e) {
   const rect = canvas.getBoundingClientRect();
-  const stride = CELL + GAP;
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const strideX = CELL + GAPX;
+  const strideY = CELL + GAPY;
   const scaleX = canvas.width  / rect.width;
   const scaleY = canvas.height / rect.height;
-  const c = Math.floor((mx * scaleX) / stride);
-  const r = Math.floor((my * scaleY) / stride);
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top)  * scaleY;
+  const c = Math.floor(mx / strideX);
+  const r = Math.floor(my / strideY);
   return { r, c };
 }
 
@@ -303,8 +318,13 @@ function buildCharPanel(id, chars) {
 }
 
 function setupEvents() {
-  canvas.addEventListener('mousedown', e => { isDrawing = true; const {r,c} = cellFromEvent(e); paint(r,c); e.preventDefault(); });
-  canvas.addEventListener('mousemove', e => { if (isDrawing) { const {r,c} = cellFromEvent(e); paint(r,c); } });
+  canvas.addEventListener('mousedown', e => {
+    isDrawing = true;
+    const {r,c} = cellFromEvent(e); paint(r,c); e.preventDefault();
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (isDrawing) { const {r,c} = cellFromEvent(e); paint(r,c); }
+  });
   document.addEventListener('mouseup', () => { isDrawing = false; });
 
   document.getElementById('cols-s').addEventListener('input', e => {
@@ -319,8 +339,12 @@ function setupEvents() {
     CELL = +e.target.value; document.getElementById('cell-v').textContent = CELL;
     resizeCanvas(); redraw();
   });
-  document.getElementById('gap-s').addEventListener('input', e => {
-    GAP = +e.target.value; document.getElementById('gap-v').textContent = GAP;
+  document.getElementById('gapx-s').addEventListener('input', e => {
+    GAPX = +e.target.value; document.getElementById('gapx-v').textContent = GAPX;
+    resizeCanvas(); redraw();
+  });
+  document.getElementById('gapy-s').addEventListener('input', e => {
+    GAPY = +e.target.value; document.getElementById('gapy-v').textContent = GAPY;
     resizeCanvas(); redraw();
   });
   document.getElementById('grid-tog').addEventListener('change', e => {
@@ -340,7 +364,9 @@ function setupEvents() {
     const b = document.getElementById('btn-copy');
     b.textContent = 'copied!'; setTimeout(() => b.textContent = 'copy ↗', 1500);
   });
-  document.getElementById('btn-clear').addEventListener('click', () => { initGrid(); redraw(); updateOutput(); });
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    initGrid(); redraw(); updateOutput();
+  });
   document.getElementById('btn-border').addEventListener('click', () => {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
