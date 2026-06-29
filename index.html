@@ -7,27 +7,20 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: #111; color: #e0e0e0; font-family: monospace; }
-
 #app { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
-
 header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: #00ff88; }
 header h1 span { color: #444; }
-
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: #888; }
 .toolbar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .toolbar input[type=range] { width: 70px; accent-color: #00ff88; }
 .toolbar input[type=checkbox] { accent-color: #00ff88; cursor: pointer; }
 .val { color: #ccc; min-width: 22px; display: inline-block; }
 .sep { color: #333; }
-
 .main { display: flex; gap: 10px; flex: 1; min-height: 0; }
-
 .sidebar { display: flex; flex-direction: column; gap: 8px; width: 220px; flex-shrink: 0; overflow-y: auto; }
-
 .panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px; }
 .panel-label { font-size: 10px; color: #555; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
-
 .char-grid { display: flex; flex-wrap: wrap; gap: 2px; }
 .char-btn {
   width: 26px; height: 26px; border: 1px solid #2a2a2a; background: #111;
@@ -37,52 +30,26 @@ header h1 span { color: #444; }
 }
 .char-btn:hover { background: #222; border-color: #444; }
 .char-btn.active { background: #003322; border-color: #00ff88; color: #00ff88; }
-
 .palette-grid { display: flex; flex-direction: column; gap: 2px; }
 .palette-row { display: flex; gap: 2px; }
 .swatch {
   width: 18px; height: 18px; border-radius: 3px; cursor: pointer;
-  border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s;
-  flex-shrink: 0;
+  border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s; flex-shrink: 0;
 }
 .swatch:hover { transform: scale(1.2); }
 .swatch.active { border-color: #fff; transform: scale(1.2); }
-
 .custom-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; color: #666; }
 .custom-row input[type=color] { width: 24px; height: 24px; border: none; background: none; cursor: pointer; padding: 0; border-radius: 3px; }
-
 .bg-row { display: flex; flex-wrap: wrap; gap: 3px; }
-.bg-swatch {
-  width: 24px; height: 16px; border-radius: 3px; cursor: pointer;
-  border: 1.5px solid #333; transition: border-color 0.1s;
-}
+.bg-swatch { width: 24px; height: 16px; border-radius: 3px; cursor: pointer; border: 1.5px solid #333; transition: border-color 0.1s; }
 .bg-swatch:hover, .bg-swatch.active { border-color: #fff; }
-
 .canvas-area { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-
-.canvas-wrap {
-  flex: 1; border: 1px solid #2a2a2a; border-radius: 6px;
-  overflow: auto; padding: 10px; background: #0c0c0c; min-height: 0;
-}
-#canvas { display: grid; gap: 0; cursor: crosshair; user-select: none; width: fit-content; line-height: 1; }
-.cell {
-  width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
-  font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1;
-  letter-spacing: -0.05em; overflow: hidden;
-  border: 1px solid transparent;
-}
-.cell:hover { background: rgba(255,255,255,0.06); }
-.cell.grid-on { border-color: rgba(255,255,255,0.05); }
-
+.canvas-wrap { flex: 1; border: 1px solid #2a2a2a; border-radius: 6px; overflow: auto; padding: 10px; background: #0c0c0c; min-height: 0; }
+#c { cursor: crosshair; display: block; }
 .output-panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px; }
 .output-panel pre { font-size: 11px; color: #aaa; line-height: 1.4; max-height: 80px; overflow: auto; white-space: pre; }
-
 .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
-button {
-  font-family: monospace; font-size: 11px; padding: 4px 10px;
-  background: #1a1a1a; border: 1px solid #333; border-radius: 4px;
-  color: #ccc; cursor: pointer; transition: background 0.1s, border-color 0.1s;
-}
+button { font-family: monospace; font-size: 11px; padding: 4px 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: #ccc; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
 button:hover { background: #222; border-color: #555; }
 button.primary { border-color: #00aa55; color: #00ff88; }
 button.primary:hover { background: #003322; }
@@ -97,7 +64,9 @@ button.primary:hover { background: #003322; }
       <span class="sep">·</span>
       <label>rows <input type="range" id="rows-s" min="4" max="40" value="16" step="1"> <span class="val" id="rows-v">16</span></label>
       <span class="sep">·</span>
-      <label>gap <input type="range" id="gap-s" min="0" max="6" value="0" step="1"> <span class="val" id="gap-v">0</span>px</label>
+      <label>cell <input type="range" id="cell-s" min="8" max="32" value="16" step="1"> <span class="val" id="cell-v">16</span>px</label>
+      <span class="sep">·</span>
+      <label>gap <input type="range" id="gap-s" min="0" max="8" value="0" step="1"> <span class="val" id="gap-v">0</span>px</label>
       <span class="sep">·</span>
       <label><input type="checkbox" id="grid-tog"> grid</label>
       <label><input type="checkbox" id="erase-tog"> erase</label>
@@ -138,7 +107,7 @@ button.primary:hover { background: #003322; }
 
     <div class="canvas-area">
       <div class="canvas-wrap" id="canvas-wrap">
-        <div id="canvas"></div>
+        <canvas id="c"></canvas>
       </div>
       <div class="output-panel">
         <div class="panel-label" style="margin-bottom:4px">text output</div>
@@ -181,18 +150,94 @@ const PALETTE = [
 
 const BG_COLORS = ['#0c0c0c','#0a0a1a','#0f1a0f','#1a0a0a','#111111','#1a1a2e','#f5f5f0','#fdf6e3'];
 
-let COLS = 40, ROWS = 16, GAP = 0;
+let COLS = 40, ROWS = 16, CELL = 16, GAP = 0;
 let selectedChar = '█';
 let selectedColor = '#00ff88';
+let bgColor = '#0c0c0c';
 let isDrawing = false;
 let showGrid = false;
 let eraseMode = false;
 let grid = [];
 
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
 function initGrid() {
   grid = Array.from({length: ROWS}, () =>
     Array.from({length: COLS}, () => ({char: ' ', color: '#e0e0e0'}))
   );
+}
+
+function resizeCanvas() {
+  const stride = CELL + GAP;
+  canvas.width  = COLS * stride - GAP;
+  canvas.height = ROWS * stride - GAP;
+}
+
+function redraw() {
+  const stride = CELL + GAP;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = `${CELL}px "Courier New", Courier, monospace`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const x = c * stride;
+      const y = r * stride;
+      const cell = grid[r][c];
+
+      if (cell.char !== ' ') {
+        ctx.fillStyle = cell.color;
+        ctx.fillText(cell.char, x + CELL / 2, y + CELL / 2);
+      }
+
+      if (showGrid) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+      }
+    }
+  }
+}
+
+function cellFromEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const stride = CELL + GAP;
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const c = Math.floor((mx * scaleX) / stride);
+  const r = Math.floor((my * scaleY) / stride);
+  return { r, c };
+}
+
+function paint(r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  grid[r][c] = eraseMode
+    ? { char: ' ', color: '#e0e0e0' }
+    : { char: selectedChar, color: selectedColor };
+  redraw();
+  updateOutput();
+}
+
+function updateOutput() {
+  document.getElementById('output').textContent =
+    grid.map(row => row.map(c => c.char).join('')).join('\n');
+}
+
+function floodFill(r, c, tc, tch) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  const cell = grid[r][c];
+  if (cell.char !== tch || cell.color !== tc) return;
+  if (cell.char === selectedChar && cell.color === selectedColor) return;
+  grid[r][c] = { char: selectedChar, color: selectedColor };
+  floodFill(r+1,c,tc,tch); floodFill(r-1,c,tc,tch);
+  floodFill(r,c+1,tc,tch); floodFill(r,c-1,tc,tch);
 }
 
 function buildPalette() {
@@ -223,7 +268,9 @@ function buildBgSwatches() {
     sw.addEventListener('click', () => {
       document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
       sw.classList.add('active');
+      bgColor = bg;
       document.getElementById('canvas-wrap').style.background = bg;
+      redraw();
     });
     el.appendChild(sw);
   });
@@ -255,76 +302,33 @@ function buildCharPanel(id, chars) {
   });
 }
 
-function buildCanvas() {
-  const canvas = document.getElementById('canvas');
-  canvas.style.gridTemplateColumns = `repeat(${COLS}, 14px)`;
-  canvas.style.gap = `${GAP}px`;
-  canvas.innerHTML = '';
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell' + (showGrid ? ' grid-on' : '');
-      cell.dataset.r = r; cell.dataset.c = c;
-      cell.textContent = grid[r][c].char;
-      cell.style.color = grid[r][c].color;
-      cell.addEventListener('mousedown', e => { isDrawing = true; paint(r,c); e.preventDefault(); });
-      cell.addEventListener('mouseover', () => { if (isDrawing) paint(r,c); });
-      canvas.appendChild(cell);
-    }
-  }
-}
-
-function paint(r, c) {
-  grid[r][c] = eraseMode ? {char:' ', color:'#e0e0e0'} : {char: selectedChar, color: selectedColor};
-  const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
-  if (cell) { cell.textContent = grid[r][c].char; cell.style.color = grid[r][c].color; }
-  updateOutput();
-}
-
-function updateOutput() {
-  document.getElementById('output').textContent =
-    grid.map(row => row.map(c => c.char).join('')).join('\n');
-}
-
-function floodFill(r, c, tc, tch) {
-  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-  const cell = grid[r][c];
-  if (cell.char !== tch || cell.color !== tc) return;
-  if (cell.char === selectedChar && cell.color === selectedColor) return;
-  grid[r][c] = {char: selectedChar, color: selectedColor};
-  const el = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
-  if (el) { el.textContent = selectedChar; el.style.color = selectedColor; }
-  floodFill(r+1,c,tc,tch); floodFill(r-1,c,tc,tch);
-  floodFill(r,c+1,tc,tch); floodFill(r,c-1,tc,tch);
-}
-
 function setupEvents() {
+  canvas.addEventListener('mousedown', e => { isDrawing = true; const {r,c} = cellFromEvent(e); paint(r,c); e.preventDefault(); });
+  canvas.addEventListener('mousemove', e => { if (isDrawing) { const {r,c} = cellFromEvent(e); paint(r,c); } });
   document.addEventListener('mouseup', () => { isDrawing = false; });
 
-  document.getElementById('gap-s').addEventListener('input', e => {
-    GAP = +e.target.value;
-    document.getElementById('gap-v').textContent = GAP;
-    buildCanvas(); updateOutput();
-  });
-
   document.getElementById('cols-s').addEventListener('input', e => {
-    COLS = +e.target.value;
-    document.getElementById('cols-v').textContent = COLS;
-    initGrid(); buildCanvas(); updateOutput();
+    COLS = +e.target.value; document.getElementById('cols-v').textContent = COLS;
+    initGrid(); resizeCanvas(); redraw(); updateOutput();
   });
   document.getElementById('rows-s').addEventListener('input', e => {
-    ROWS = +e.target.value;
-    document.getElementById('rows-v').textContent = ROWS;
-    initGrid(); buildCanvas(); updateOutput();
+    ROWS = +e.target.value; document.getElementById('rows-v').textContent = ROWS;
+    initGrid(); resizeCanvas(); redraw(); updateOutput();
+  });
+  document.getElementById('cell-s').addEventListener('input', e => {
+    CELL = +e.target.value; document.getElementById('cell-v').textContent = CELL;
+    resizeCanvas(); redraw();
+  });
+  document.getElementById('gap-s').addEventListener('input', e => {
+    GAP = +e.target.value; document.getElementById('gap-v').textContent = GAP;
+    resizeCanvas(); redraw();
   });
   document.getElementById('grid-tog').addEventListener('change', e => {
-    showGrid = e.target.checked;
-    document.querySelectorAll('.cell').forEach(c => c.classList.toggle('grid-on', showGrid));
+    showGrid = e.target.checked; redraw();
   });
   document.getElementById('erase-tog').addEventListener('change', e => {
     eraseMode = e.target.checked;
   });
-
   document.getElementById('custom-color').addEventListener('input', e => {
     document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
     selectedColor = e.target.value;
@@ -334,43 +338,39 @@ function setupEvents() {
   document.getElementById('btn-copy').addEventListener('click', () => {
     navigator.clipboard.writeText(document.getElementById('output').textContent).catch(()=>{});
     const b = document.getElementById('btn-copy');
-    b.textContent = 'copied!';
-    setTimeout(() => b.textContent = 'copy ↗', 1500);
+    b.textContent = 'copied!'; setTimeout(() => b.textContent = 'copy ↗', 1500);
   });
-  document.getElementById('btn-clear').addEventListener('click', () => { initGrid(); buildCanvas(); updateOutput(); });
+  document.getElementById('btn-clear').addEventListener('click', () => { initGrid(); redraw(); updateOutput(); });
   document.getElementById('btn-border').addEventListener('click', () => {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
         if (r===0||r===ROWS-1||c===0||c===COLS-1)
-          grid[r][c] = {char: selectedChar, color: selectedColor};
-    buildCanvas(); updateOutput();
+          grid[r][c] = { char: selectedChar, color: selectedColor };
+    redraw(); updateOutput();
   });
   document.getElementById('btn-fill').addEventListener('click', () => {
     const c0 = grid[0][0];
     floodFill(0, 0, c0.color, c0.char);
-    updateOutput();
+    redraw(); updateOutput();
   });
   document.getElementById('btn-invert').addEventListener('click', () => {
     grid = grid.map(row => row.map(cell => ({
       char: cell.char === ' ' ? selectedChar : ' ',
       color: cell.char === ' ' ? selectedColor : cell.color
     })));
-    buildCanvas(); updateOutput();
+    redraw(); updateOutput();
   });
   document.getElementById('btn-hflip').addEventListener('click', () => {
-    grid = grid.map(row => [...row].reverse());
-    buildCanvas(); updateOutput();
+    grid = grid.map(row => [...row].reverse()); redraw(); updateOutput();
   });
   document.getElementById('btn-vflip').addEventListener('click', () => {
-    grid = [...grid].reverse();
-    buildCanvas(); updateOutput();
+    grid = [...grid].reverse(); redraw(); updateOutput();
   });
   document.getElementById('btn-download').addEventListener('click', () => {
     const text = document.getElementById('output').textContent;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
-    a.download = 'blockparty.txt';
-    a.click();
+    a.download = 'blockparty.txt'; a.click();
   });
 }
 
@@ -381,7 +381,8 @@ buildCharPanel('p-blocks', CHARS.blocks);
 buildCharPanel('p-box', CHARS.box);
 buildCharPanel('p-braille', CHARS.braille);
 buildCharPanel('p-geo', CHARS.geo);
-buildCanvas();
+resizeCanvas();
+redraw();
 updateOutput();
 setupEvents();
 </script>
