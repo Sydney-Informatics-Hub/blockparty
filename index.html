@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockparty</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #111; color: #e0e0e0; font-family: monospace; }
+
+#app { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
+
+header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: #00ff88; }
+header h1 span { color: #444; }
+
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: #888; }
+.toolbar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.toolbar input[type=range] { width: 70px; accent-color: #00ff88; }
+.toolbar input[type=checkbox] { accent-color: #00ff88; cursor: pointer; }
+.val { color: #ccc; min-width: 22px; display: inline-block; }
+.sep { color: #333; }
+
+.main { display: flex; gap: 10px; flex: 1; min-height: 0; }
+
+.sidebar { display: flex; flex-direction: column; gap: 8px; width: 220px; flex-shrink: 0; overflow-y: auto; }
+
+.panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px; }
+.panel-label { font-size: 10px; color: #555; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+
+.char-grid { display: flex; flex-wrap: wrap; gap: 2px; }
+.char-btn {
+  width: 26px; height: 26px; border: 1px solid #2a2a2a; background: #111;
+  border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; color: #ccc;
+  transition: background 0.1s, border-color 0.1s;
+}
+.char-btn:hover { background: #222; border-color: #444; }
+.char-btn.active { background: #003322; border-color: #00ff88; color: #00ff88; }
+
+.palette-grid { display: flex; flex-direction: column; gap: 2px; }
+.palette-row { display: flex; gap: 2px; }
+.swatch {
+  width: 18px; height: 18px; border-radius: 3px; cursor: pointer;
+  border: 2px solid transparent; transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+.swatch:hover { transform: scale(1.2); }
+.swatch.active { border-color: #fff; transform: scale(1.2); }
+
+.custom-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; color: #666; }
+.custom-row input[type=color] { width: 24px; height: 24px; border: none; background: none; cursor: pointer; padding: 0; border-radius: 3px; }
+
+.bg-row { display: flex; flex-wrap: wrap; gap: 3px; }
+.bg-swatch {
+  width: 24px; height: 16px; border-radius: 3px; cursor: pointer;
+  border: 1.5px solid #333; transition: border-color 0.1s;
+}
+.bg-swatch:hover, .bg-swatch.active { border-color: #fff; }
+
+.canvas-area { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.canvas-wrap {
+  flex: 1; border: 1px solid #2a2a2a; border-radius: 6px;
+  overflow: auto; padding: 10px; background: #0c0c0c; min-height: 0;
+}
+#canvas { display: grid; gap: 0; cursor: crosshair; user-select: none; width: fit-content; }
+.cell {
+  width: 15px; height: 19px; display: flex; align-items: center; justify-content: center;
+  font-family: monospace; font-size: 13px; line-height: 1;
+  border: 1px solid transparent;
+}
+.cell:hover { background: rgba(255,255,255,0.06); }
+.cell.grid-on { border-color: rgba(255,255,255,0.05); }
+
+.output-panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px; }
+.output-panel pre { font-size: 11px; color: #aaa; line-height: 1.4; max-height: 80px; overflow: auto; white-space: pre; }
+
+.btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+button {
+  font-family: monospace; font-size: 11px; padding: 4px 10px;
+  background: #1a1a1a; border: 1px solid #333; border-radius: 4px;
+  color: #ccc; cursor: pointer; transition: background 0.1s, border-color 0.1s;
+}
+button:hover { background: #222; border-color: #555; }
+button.primary { border-color: #00aa55; color: #00ff88; }
+button.primary:hover { background: #003322; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>block<span>party</span></h1>
+    <div class="toolbar">
+      <label>cols <input type="range" id="cols-s" min="8" max="80" value="40" step="1"> <span class="val" id="cols-v">40</span></label>
+      <span class="sep">·</span>
+      <label>rows <input type="range" id="rows-s" min="4" max="40" value="16" step="1"> <span class="val" id="rows-v">16</span></label>
+      <span class="sep">·</span>
+      <label><input type="checkbox" id="grid-tog"> grid</label>
+      <label><input type="checkbox" id="erase-tog"> erase</label>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-label">Canvas background</div>
+        <div class="bg-row" id="bg-row"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Colour</div>
+        <div class="palette-grid" id="palette-grid"></div>
+        <div class="custom-row">
+          custom <input type="color" id="custom-color" value="#e0e0e0">
+          <span id="custom-hex">#e0e0e0</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Block elements</div>
+        <div class="char-grid" id="p-blocks"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Box drawing</div>
+        <div class="char-grid" id="p-box"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Braille / noise</div>
+        <div class="char-grid" id="p-braille"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Geometric</div>
+        <div class="char-grid" id="p-geo"></div>
+      </div>
+    </div>
+
+    <div class="canvas-area">
+      <div class="canvas-wrap" id="canvas-wrap">
+        <div id="canvas"></div>
+      </div>
+      <div class="output-panel">
+        <div class="panel-label" style="margin-bottom:4px">text output</div>
+        <pre id="output"></pre>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="btn-copy">copy ↗</button>
+        <button id="btn-clear">clear</button>
+        <button id="btn-border">border</button>
+        <button id="btn-fill">flood fill</button>
+        <button id="btn-invert">invert</button>
+        <button id="btn-hflip">flip H</button>
+        <button id="btn-vflip">flip V</button>
+        <button id="btn-download">download .txt</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHARS = {
+  blocks: '█▓▒░▀▄▌▐▖▗▘▝▙▚▛▜▟▞▴▾▲▼◀▶'.split(''),
+  box: '─│┌┐└┘├┤┬┴┼═║╔╗╚╝╠╣╦╩╬╭╮╯╰╴╵╶╷▕▏┄┅┆┇'.split(''),
+  braille: '⣿⠿⠛⠉⠁⠂⠄⠈⠐⠠⡀⢀⣀⣤⣶⣾⠶⠦⠧⡆⢸⠸⠼⡇⠇⠿⣷⣯⣟⡿'.split(''),
+  geo: '●○◉◎◌◍◑◐◆◇◈◊★☆♦♠♣♥▮▯▰▱◼◻◾◽▪▫·•‣⁃'.split('')
+};
+
+const PALETTE = [
+  ['#ffffff','#f0f0f0','#d0d0d0','#b0b0b0','#888888','#606060','#404040','#202020','#0c0c0c'],
+  ['#fff8f0','#f5dfc0','#e0b870','#c89040','#a06820','#784808','#502800','#301000','#180800'],
+  ['#ffe0e0','#ff9999','#ff5555','#ff2222','#dd0000','#aa0000','#770000','#ff80aa','#ff3388'],
+  ['#fff0d0','#ffcc77','#ff9933','#ff6600','#dd4400','#bb2200','#ffd700','#ffaa00','#cc7700'],
+  ['#ffffd0','#ffff77','#ddff33','#aaee00','#88cc00','#559900','#336600','#eeff88','#ccff00'],
+  ['#d0ffe0','#88ffaa','#33ee66','#00cc44','#009933','#006622','#003311','#00ff88','#00dd66'],
+  ['#d0ffff','#77ffee','#22ddcc','#00bbaa','#008888','#005566','#003344','#00ffff','#00ccdd'],
+  ['#d0e8ff','#77bbff','#3388ff','#0055ff','#0033cc','#001199','#000066','#88aaff','#5566ff'],
+  ['#ead0ff','#cc88ff','#aa44ff','#8800ff','#6600cc','#440099','#220055','#ff88ff','#cc44ee'],
+  ['#00ff00','#33ff33','#00cc00','#39ff14','#7fff00','#adff2f','#ff073a','#fe019a','#bc13fe'],
+];
+
+const BG_COLORS = ['#0c0c0c','#0a0a1a','#0f1a0f','#1a0a0a','#111111','#1a1a2e','#f5f5f0','#fdf6e3'];
+
+let COLS = 40, ROWS = 16;
+let selectedChar = '█';
+let selectedColor = '#00ff88';
+let isDrawing = false;
+let showGrid = false;
+let eraseMode = false;
+let grid = [];
+
+function initGrid() {
+  grid = Array.from({length: ROWS}, () =>
+    Array.from({length: COLS}, () => ({char: ' ', color: '#e0e0e0'}))
+  );
+}
+
+function buildPalette() {
+  const el = document.getElementById('palette-grid');
+  el.innerHTML = '';
+  PALETTE.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'palette-row';
+    row.forEach(color => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (color === selectedColor ? ' active' : '');
+      sw.style.background = color;
+      sw.title = color;
+      sw.addEventListener('click', () => selectColor(color, sw));
+      rowEl.appendChild(sw);
+    });
+    el.appendChild(rowEl);
+  });
+}
+
+function buildBgSwatches() {
+  const el = document.getElementById('bg-row');
+  BG_COLORS.forEach((bg, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'bg-swatch' + (i === 0 ? ' active' : '');
+    sw.style.background = bg;
+    sw.title = bg;
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      document.getElementById('canvas-wrap').style.background = bg;
+    });
+    el.appendChild(sw);
+  });
+}
+
+function selectColor(color, swEl) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  if (swEl) swEl.classList.add('active');
+  selectedColor = color;
+  document.getElementById('custom-color').value = /^#[0-9a-f]{6}$/i.test(color) ? color : '#e0e0e0';
+  document.getElementById('custom-hex').textContent = color;
+}
+
+function buildCharPanel(id, chars) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  chars.forEach(ch => {
+    const btn = document.createElement('div');
+    btn.className = 'char-btn' + (ch === selectedChar ? ' active' : '');
+    btn.textContent = ch;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedChar = ch;
+      eraseMode = false;
+      document.getElementById('erase-tog').checked = false;
+    });
+    el.appendChild(btn);
+  });
+}
+
+function buildCanvas() {
+  const canvas = document.getElementById('canvas');
+  canvas.style.gridTemplateColumns = `repeat(${COLS}, 15px)`;
+  canvas.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (showGrid ? ' grid-on' : '');
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.textContent = grid[r][c].char;
+      cell.style.color = grid[r][c].color;
+      cell.addEventListener('mousedown', e => { isDrawing = true; paint(r,c); e.preventDefault(); });
+      cell.addEventListener('mouseover', () => { if (isDrawing) paint(r,c); });
+      canvas.appendChild(cell);
+    }
+  }
+}
+
+function paint(r, c) {
+  grid[r][c] = eraseMode ? {char:' ', color:'#e0e0e0'} : {char: selectedChar, color: selectedColor};
+  const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  if (cell) { cell.textContent = grid[r][c].char; cell.style.color = grid[r][c].color; }
+  updateOutput();
+}
+
+function updateOutput() {
+  document.getElementById('output').textContent =
+    grid.map(row => row.map(c => c.char).join('')).join('\n');
+}
+
+function floodFill(r, c, tc, tch) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  const cell = grid[r][c];
+  if (cell.char !== tch || cell.color !== tc) return;
+  if (cell.char === selectedChar && cell.color === selectedColor) return;
+  grid[r][c] = {char: selectedChar, color: selectedColor};
+  const el = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  if (el) { el.textContent = selectedChar; el.style.color = selectedColor; }
+  floodFill(r+1,c,tc,tch); floodFill(r-1,c,tc,tch);
+  floodFill(r,c+1,tc,tch); floodFill(r,c-1,tc,tch);
+}
+
+function setupEvents() {
+  document.addEventListener('mouseup', () => { isDrawing = false; });
+
+  document.getElementById('cols-s').addEventListener('input', e => {
+    COLS = +e.target.value;
+    document.getElementById('cols-v').textContent = COLS;
+    initGrid(); buildCanvas(); updateOutput();
+  });
+  document.getElementById('rows-s').addEventListener('input', e => {
+    ROWS = +e.target.value;
+    document.getElementById('rows-v').textContent = ROWS;
+    initGrid(); buildCanvas(); updateOutput();
+  });
+  document.getElementById('grid-tog').addEventListener('change', e => {
+    showGrid = e.target.checked;
+    document.querySelectorAll('.cell').forEach(c => c.classList.toggle('grid-on', showGrid));
+  });
+  document.getElementById('erase-tog').addEventListener('change', e => {
+    eraseMode = e.target.checked;
+  });
+
+  document.getElementById('custom-color').addEventListener('input', e => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    selectedColor = e.target.value;
+    document.getElementById('custom-hex').textContent = e.target.value;
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('output').textContent).catch(()=>{});
+    const b = document.getElementById('btn-copy');
+    b.textContent = 'copied!';
+    setTimeout(() => b.textContent = 'copy ↗', 1500);
+  });
+  document.getElementById('btn-clear').addEventListener('click', () => { initGrid(); buildCanvas(); updateOutput(); });
+  document.getElementById('btn-border').addEventListener('click', () => {
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (r===0||r===ROWS-1||c===0||c===COLS-1)
+          grid[r][c] = {char: selectedChar, color: selectedColor};
+    buildCanvas(); updateOutput();
+  });
+  document.getElementById('btn-fill').addEventListener('click', () => {
+    const c0 = grid[0][0];
+    floodFill(0, 0, c0.color, c0.char);
+    updateOutput();
+  });
+  document.getElementById('btn-invert').addEventListener('click', () => {
+    grid = grid.map(row => row.map(cell => ({
+      char: cell.char === ' ' ? selectedChar : ' ',
+      color: cell.char === ' ' ? selectedColor : cell.color
+    })));
+    buildCanvas(); updateOutput();
+  });
+  document.getElementById('btn-hflip').addEventListener('click', () => {
+    grid = grid.map(row => [...row].reverse());
+    buildCanvas(); updateOutput();
+  });
+  document.getElementById('btn-vflip').addEventListener('click', () => {
+    grid = [...grid].reverse();
+    buildCanvas(); updateOutput();
+  });
+  document.getElementById('btn-download').addEventListener('click', () => {
+    const text = document.getElementById('output').textContent;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+    a.download = 'blockparty.txt';
+    a.click();
+  });
+}
+
+initGrid();
+buildPalette();
+buildBgSwatches();
+buildCharPanel('p-blocks', CHARS.blocks);
+buildCharPanel('p-box', CHARS.box);
+buildCharPanel('p-braille', CHARS.braille);
+buildCharPanel('p-geo', CHARS.geo);
+buildCanvas();
+updateOutput();
+setupEvents();
+</script>
+</body>
+</html>
