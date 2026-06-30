@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 # Blockparty ANSI demo — Bash
-cat blockparty.ans
+cat example.ans
 echo "rendered by: bash"

@@ -8,5 +8,3 @@ echo ""
 echo "── Bash ────────────────────────────"
 ./demo.sh
 echo ""
-echo "── Node.js ─────────────────────────"
-node demo.js

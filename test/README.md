@@ -7,11 +7,11 @@ Blockparty-specific format.
 
 ## Files
 
-- `blockparty.ans` — the exported art (24-bit ANSI colour codes embedded)
-- `demo.py` — reads and prints the file in Python
-- `demo.sh` — reads and prints the file in Bash
-- `demo.js` — reads and prints the file in Node.js
-- `run_all.sh` — runs all three back to back for a side-by-side demo
+- `example.ans`: the exported art (24-bit ANSI colour codes embedded)
+- `demo.py`: reads and prints the file in Python
+- `demo.sh`: reads and prints the file in Bash
+- `demo.js`: reads and prints the file in Node.js
+- `run_all.sh`: runs all three back to back for a side-by-side demo
 
 ## Run it
 

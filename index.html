@@ -48,7 +48,8 @@ header h1 span { color: #444; }
 #c { cursor: crosshair; display: block; }
 .output-panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px; }
 .output-panel pre { font-size: 11px; color: #aaa; line-height: 1.4; max-height: 80px; overflow: auto; white-space: pre; }
-.btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.btn-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.btn-sep { width: 1px; height: 20px; background: #2a2a2a; margin: 0 4px; }
 button { font-family: monospace; font-size: 11px; padding: 4px 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: #ccc; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
 button:hover { background: #222; border-color: #555; }
 button.primary { border-color: #00aa55; color: #00ff88; }
@@ -64,7 +65,7 @@ button.primary:hover { background: #003322; }
       <span class="sep">·</span>
       <label>rows <input type="range" id="rows-s" min="4" max="40" value="16" step="1"> <span class="val" id="rows-v">16</span></label>
       <span class="sep">·</span>
-      <label>cell <input type="range" id="cell-s" min="8" max="32" value="16" step="1"> <span class="val" id="cell-v">16</span>px</label>
+      <label>cell height <input type="range" id="cell-s" min="8" max="32" value="18" step="1"> <span class="val" id="cell-v">18</span>px</label>
       <span class="sep">·</span>
       <label>gap H <input type="range" id="gapx-s" min="0" max="8" value="0" step="1"> <span class="val" id="gapx-v">0</span>px</label>
       <label>V <input type="range" id="gapy-s" min="0" max="8" value="0" step="1"> <span class="val" id="gapy-v">0</span>px</label>
@@ -115,16 +116,19 @@ button.primary:hover { background: #003322; }
         <pre id="output"></pre>
       </div>
       <div class="btn-row">
-        <button class="primary" id="btn-copy">copy ↗</button>
-        <button class="primary" id="btn-copy-ansi">copy ANSI ↗</button>
         <button id="btn-clear">clear</button>
         <button id="btn-border">border</button>
         <button id="btn-fill">flood fill</button>
         <button id="btn-invert">invert</button>
         <button id="btn-hflip">flip H</button>
         <button id="btn-vflip">flip V</button>
+        <span class="btn-sep"></span>
+        <button class="primary" id="btn-copy">copy ↗</button>
+        <button class="primary" id="btn-copy-ansi">copy ANSI ↗</button>
+        <span class="btn-sep"></span>
         <button id="btn-download">download .txt</button>
         <button id="btn-download-ansi">download .ans</button>
+        <button class="primary" id="btn-download-svg">download .svg</button>
       </div>
     </div>
   </div>
@@ -153,7 +157,8 @@ const PALETTE = [
 
 const BG_COLORS = ['#0c0c0c','#0a0a1a','#0f1a0f','#1a0a0a','#111111','#1a1a2e','#f5f5f0','#fdf6e3'];
 
-let COLS = 40, ROWS = 16, CELL = 16, GAPX = 0, GAPY = 0;
+let COLS = 40, ROWS = 16, CELL_H = 18, GAPX = 0, GAPY = 0;
+const TERMINAL_ASPECT = 0.55; // typical monospace width:height ratio (macOS Terminal/Menlo)
 let selectedChar = '█';
 let selectedColor = '#00ff88';
 let bgColor = '#0c0c0c';
@@ -171,13 +176,18 @@ function initGrid() {
   );
 }
 
+function cellW() {
+  return Math.round(CELL_H * TERMINAL_ASPECT);
+}
+
 function resizeCanvas() {
-  canvas.width  = COLS * CELL + Math.max(0, COLS - 1) * GAPX;
-  canvas.height = ROWS * CELL + Math.max(0, ROWS - 1) * GAPY;
+  const W = cellW(), H = CELL_H;
+  canvas.width  = COLS * W + Math.max(0, COLS - 1) * GAPX;
+  canvas.height = ROWS * H + Math.max(0, ROWS - 1) * GAPY;
 }
 
 function redraw() {
-  const W = CELL, H = CELL;
+  const W = cellW(), H = CELL_H;
   const strideX = W + GAPX;
   const strideY = H + GAPY;
 
@@ -203,10 +213,10 @@ function redraw() {
         } else {
           // partial block / other chars — render as text so the shape shows through
           // scale font slightly larger so glyphs fill to cell edges
-          ctx.font = `${Math.ceil(CELL * 1.18)}px "Courier New", Courier, monospace`;
+          ctx.font = `${Math.ceil(H * 1.18)}px "Courier New", Courier, monospace`;
           ctx.textBaseline = 'middle';
           ctx.textAlign = 'center';
-          ctx.fillText(cell.char, x + W / 2, y + H / 2 + CELL * 0.02);
+          ctx.fillText(cell.char, x + W / 2, y + H / 2 + H * 0.02);
         }
         ctx.restore();
       }
@@ -222,8 +232,8 @@ function redraw() {
 
 function cellFromEvent(e) {
   const rect = canvas.getBoundingClientRect();
-  const strideX = CELL + GAPX;
-  const strideY = CELL + GAPY;
+  const strideX = cellW() + GAPX;
+  const strideY = CELL_H + GAPY;
   const scaleX = canvas.width  / rect.width;
   const scaleY = canvas.height / rect.height;
   const mx = (e.clientX - rect.left) * scaleX;
@@ -273,6 +283,49 @@ function buildAnsiText() {
     if (lastColor !== null) line += '\x1b[0m';
     return line;
   }).join('\n');
+}
+
+function escapeXml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildSvg() {
+  // Mirrors the canvas redraw() logic exactly, so the SVG export matches
+  // what's actually on screen — full blocks as filled rects, everything
+  // else as clipped text — direct from the live grid, no ANSI round-trip.
+  const W = cellW(), H = CELL_H;
+  const strideX = W + GAPX;
+  const strideY = H + GAPY;
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`);
+  parts.push(`<rect width="${width}" height="${height}" fill="${bgColor}"/>`);
+  parts.push(`<style>text { font-family: "Courier New", Courier, monospace; dominant-baseline: central; text-anchor: middle; }</style>`);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c];
+      if (cell.char === ' ') continue;
+      const x = c * strideX;
+      const y = r * strideY;
+      const cx = x + W / 2;
+      const cy = y + H / 2;
+
+      if (cell.char === '█') {
+        parts.push(`<rect x="${x}" y="${y}" width="${W}" height="${H}" fill="${cell.color}"/>`);
+      } else {
+        const fontSize = Math.ceil(H * 1.18);
+        parts.push(
+          `<text x="${cx}" y="${cy}" font-size="${fontSize}" fill="${cell.color}">${escapeXml(cell.char)}</text>`
+        );
+      }
+    }
+  }
+
+  parts.push('</svg>');
+  return parts.join('\n');
 }
 
 function floodFill(r, c, tc, tch) {
@@ -366,7 +419,7 @@ function setupEvents() {
     initGrid(); resizeCanvas(); redraw(); updateOutput();
   });
   document.getElementById('cell-s').addEventListener('input', e => {
-    CELL = +e.target.value; document.getElementById('cell-v').textContent = CELL;
+    CELL_H = +e.target.value; document.getElementById('cell-v').textContent = CELL_H;
     resizeCanvas(); redraw();
   });
   document.getElementById('gapx-s').addEventListener('input', e => {
@@ -438,6 +491,12 @@ function setupEvents() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
     a.download = 'blockparty.ans'; a.click();
+  });
+  document.getElementById('btn-download-svg').addEventListener('click', () => {
+    const svg = buildSvg();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
+    a.download = 'blockparty.svg'; a.click();
   });
 }
 
