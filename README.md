@@ -1,6 +1,6 @@
 # blockparty
 
-A browser-based ASCII and block character art editor. No dependencies, no install — just open and draw.
+A browser-based ASCII and block character art editor.
 
 **[Launch blockparty](https://sydney-informatics-hub.github.io/blockparty/)**
 
@@ -39,8 +39,7 @@ Cell proportions match a typical monospace terminal (roughly 0.55 width:height),
 
 ## Exporting `.svg` for a README 
 
-The simplest way to put your art in a README is the **download .svg** button — it renders directly from the canvas, with no intermediate format or conversion script needed:
-
+The simplest way to put your art in a README is the **download .svg** button:
 1. Draw your art
 2. Click **download .svg**
 3. Commit the file to your repo and embed it:
@@ -54,15 +53,15 @@ GitHub renders SVGs natively with full colour, unlike plain ANSI text which GitH
 
 ## Using ANSI output in scripts
 
-The ANSI export embeds 24-bit colour codes (`\x1b[38;2;R;G;Bm`) directly in the text, so it renders in full colour wherever it's printed to a terminal — Python, Bash, Node, or any language that writes to stdout. Working examples for each are in [`test/`](test/):
+The ANSI export embeds 24-bit colour codes (`\x1b[38;2;R;G;Bm`) directly in the text, so it renders in full colour wherever it's printed to a terminal. Working examples for each are in [`test/`](test/):
 
 ```bash
 cd test
-chmod +x demo.sh run_all.sh
+chmod +x demo.sh run_demos.sh
 ./run_all.sh
 ```
 
-This runs `demo.py`, `demo.sh`, and `demo.js` back to back, each reading [`test/example.ans`](test/example.ans) and printing it with full colour to confirm the export works identically across languages.
+This runs `demo.py` and `demo.sh`back to back, each reading [`test/example.ans`](test/example.ans) and printing it with full colour to confirm the export works identically across languages.
 
 Colour codes are only emitted when the colour changes between characters, so output stays compact. Each line resets with `\x1b[0m` to avoid bleeding into anything printed afterward.
 
