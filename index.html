@@ -116,6 +116,7 @@ button.primary:hover { background: #003322; }
       </div>
       <div class="btn-row">
         <button class="primary" id="btn-copy">copy ↗</button>
+        <button class="primary" id="btn-copy-ansi">copy ANSI ↗</button>
         <button id="btn-clear">clear</button>
         <button id="btn-border">border</button>
         <button id="btn-fill">flood fill</button>
@@ -123,6 +124,7 @@ button.primary:hover { background: #003322; }
         <button id="btn-hflip">flip H</button>
         <button id="btn-vflip">flip V</button>
         <button id="btn-download">download .txt</button>
+        <button id="btn-download-ansi">download .ans</button>
       </div>
     </div>
   </div>
@@ -245,6 +247,34 @@ function updateOutput() {
     grid.map(row => row.map(c => c.char).join('')).join('\n');
 }
 
+function hexToRgb(hex) {
+  const m = hex.replace('#','').match(/.{1,2}/g);
+  return m.map(h => parseInt(h, 16));
+}
+
+function buildAnsiText() {
+  // 24-bit ANSI foreground colour escape codes, reset at end of each line
+  return grid.map(row => {
+    let line = '';
+    let lastColor = null;
+    for (const cell of row) {
+      if (cell.char === ' ') {
+        if (lastColor !== null) { line += '\x1b[0m'; lastColor = null; }
+        line += ' ';
+        continue;
+      }
+      if (cell.color !== lastColor) {
+        const [r,g,b] = hexToRgb(cell.color);
+        line += `\x1b[38;2;${r};${g};${b}m`;
+        lastColor = cell.color;
+      }
+      line += cell.char;
+    }
+    if (lastColor !== null) line += '\x1b[0m';
+    return line;
+  }).join('\n');
+}
+
 function floodFill(r, c, tc, tch) {
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
   const cell = grid[r][c];
@@ -364,6 +394,11 @@ function setupEvents() {
     const b = document.getElementById('btn-copy');
     b.textContent = 'copied!'; setTimeout(() => b.textContent = 'copy ↗', 1500);
   });
+  document.getElementById('btn-copy-ansi').addEventListener('click', () => {
+    navigator.clipboard.writeText(buildAnsiText()).catch(()=>{});
+    const b = document.getElementById('btn-copy-ansi');
+    b.textContent = 'copied!'; setTimeout(() => b.textContent = 'copy ANSI ↗', 1500);
+  });
   document.getElementById('btn-clear').addEventListener('click', () => {
     initGrid(); redraw(); updateOutput();
   });
@@ -397,6 +432,12 @@ function setupEvents() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
     a.download = 'blockparty.txt'; a.click();
+  });
+  document.getElementById('btn-download-ansi').addEventListener('click', () => {
+    const text = buildAnsiText();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+    a.download = 'blockparty.ans'; a.click();
   });
 }
 
